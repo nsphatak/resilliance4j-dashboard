@@ -1,0 +1,135 @@
+spring:
+    application.name: resilience4j-poc
+    jackson.serialization.indent_output: true
+server:
+  port: 8090
+
+management.endpoints.web.exposure.include: '*'
+management.endpoint.health.show-details: always
+management.health.circuitbreakers.enabled: true
+management.health.ratelimiters.enabled: true
+
+management.metrics.tags.application: ${spring.application.name}
+management.metrics.distribution.percentiles-histogram.http.server.requests: true
+management.metrics.distribution.percentiles-histogram.resilience4j.circuitbreaker.calls: true
+
+
+resilience4j.circuitbreaker:
+    configs:
+        default:
+            registerHealthIndicator: true
+            slidingWindowSize: 10
+            minimumNumberOfCalls: 2
+            permittedNumberOfCallsInHalfOpenState: 1
+            automaticTransitionFromOpenToHalfOpenEnabled: true
+            waitDurationInOpenState: 10s
+            failureRateThreshold: 2
+            eventConsumerBufferSize: 10
+            recordExceptions:
+                - org.springframework.web.client.HttpServerErrorException
+                - java.io.IOException
+        shared:
+            registerHealthIndicator: true
+            slidingWindowSize: 100
+            permittedNumberOfCallsInHalfOpenState: 30
+            waitDurationInOpenState: 1s
+            failureRateThreshold: 50
+            eventConsumerBufferSize: 10
+    instances:
+        EmployeeService_AddEmployee:
+            registerHealthIndicator: true
+            slidingWindowSize: 10
+            minimumNumberOfCalls: 10
+            permittedNumberOfCallsInHalfOpenState: 3
+            waitDurationInOpenState: 1s
+            failureRateThreshold: 50
+            eventConsumerBufferSize: 10
+        EmployeeService_getEmpByName:
+            registerHealthIndicator: true
+            slidingWindowSize: 10
+            minimumNumberOfCalls: 10
+            permittedNumberOfCallsInHalfOpenState: 3
+            waitDurationInOpenState: 1s
+            failureRateThreshold: 50
+            eventConsumerBufferSize: 10
+         
+        EmployeeService_GetEmployees:
+            registerHealthIndicator: true
+            slidingWindowSize: 10
+            minimumNumberOfCalls: 2
+            permittedNumberOfCallsInHalfOpenState: 2
+            waitDurationInOpenState: 20s
+            failureRateThreshold: 2
+            eventConsumerBufferSize: 10
+resilience4j.retry:
+    configs:
+        default:
+            maxRetryAttempts: 2
+            waitDuration: 100
+            retryExceptions:
+                - org.springframework.web.client.HttpServerErrorException
+                - java.io.IOException
+    instances:
+        EmployeeService_AddEmployee:
+            maxRetryAttempts: 3
+        EmployeeService_GetEmployees:
+            maxRetryAttempts: 3
+        EmployeeService_getEmpByName:
+            maxRetryAttempts: 3
+resilience4j.bulkhead:
+    configs:
+        default:
+            maxConcurrentCalls: 100
+    instances:
+        EmployeeService_AddEmployee:
+            maxWaitDuration: 10ms
+            maxConcurrentCalls: 10
+        EmployeeService_GetEmployees:
+            maxWaitDuration: 10ms
+            maxConcurrentCalls: 20
+        EmployeeService_getEmpByName:
+            maxWaitDuration: 10ms
+            maxConcurrentCalls: 15
+
+resilience4j.thread-pool-bulkhead:
+    configs:
+        default:
+            maxThreadPoolSize: 4
+            coreThreadPoolSize: 2
+            queueCapacity: 2
+    instances:
+        EmployeeService_AddEmployee:
+            maxThreadPoolSize: 15
+            coreThreadPoolSize: 2
+            queueCapacity: 5
+        EmployeeService_GetEmployees:
+            maxThreadPoolSize: 15
+            coreThreadPoolSize: 2
+            queueCapacity: 5
+        EmployeeService_getEmpByName:
+            maxThreadPoolSize: 15
+            coreThreadPoolSize: 2
+            queueCapacity: 5
+
+resilience4j.ratelimiter:
+    configs:
+        default:
+            registerHealthIndicator: true
+            limitForPeriod: 10
+            limitRefreshPeriod: 1s
+            timeoutDuration: 0
+            eventConsumerBufferSize: 100
+    instances:
+        EmployeeService_AddEmployee:
+            limitForPeriod: 6
+            limitRefreshPeriod: 500ms
+            timeoutDuration: 3s
+        EmployeeService_GetEmployees:
+            limitForPeriod: 6
+            limitRefreshPeriod: 500ms
+            timeoutDuration: 3s
+        EmployeeService_getEmpByName:
+            limitForPeriod: 6
+            limitRefreshPeriod: 500ms
+            timeoutDuration: 3s
+  
